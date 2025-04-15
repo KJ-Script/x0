@@ -82,6 +82,8 @@ class GemniProvider(BaseProvider):
                     topK=self.top_k,
                 )
             )
+            # Extract text from non-streaming response
+            return response.text
         else:
             response = self.client.models.generate_content_stream(
                             model=self.model,
@@ -93,8 +95,12 @@ class GemniProvider(BaseProvider):
                                 topK=self.top_k,
                             )
                         )
-
-        return response
+            # Extract text from streaming response
+            full_text = ""
+            for chunk in response:
+                if chunk.text:
+                    full_text += chunk.text
+            return full_text
     
 
     

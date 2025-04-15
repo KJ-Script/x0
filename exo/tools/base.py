@@ -21,7 +21,7 @@ class Tool:
         self.function = function
         self.parameters = parameters
 
-        wraps(function)(this)
+        wraps(function)(self)
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """
