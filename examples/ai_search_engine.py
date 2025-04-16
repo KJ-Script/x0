@@ -41,9 +41,10 @@ async def main():
     
     # Example search queries
     queries = [
-        "What are the latest developments in quantum computing?",
-        "Who are the top 5 AI companies in 2024?",
-        "What are the best practices for Python async programming?"
+        # "I need Treatment guidelines for hypertension and make the source be from 'UptoDate.com'",
+        # "What are the latest developments in quantum computing?",
+        # "What are the best practices for Python async programming?"
+        "ISH guideline for treatment of Hypertension"
     ]
     
     # Process each query
@@ -72,3 +73,6 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main()) 
+
+
+
