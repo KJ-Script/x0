@@ -54,6 +54,10 @@ USE_TOOL: google_search
 PARAMETERS: {{"query": "example query", "num_results": 3}}"
 """
 
+    # Clear any existing chat history
+    if hasattr(provider, 'clear_chat_history'):
+        provider.clear_chat_history()
+
     conversation_history = []
     max_steps = 5  # Prevent infinite loops
     step = 0
@@ -64,10 +68,18 @@ PARAMETERS: {{"query": "example query", "num_results": 3}}"
             current_prompt = query
         
         # Get the provider's decision
-        response = await provider.generate(
-            system_prompt + "\n\nCurrent task: " + current_prompt + 
-            "\n\nConversation history: " + str(conversation_history)
-        )
+        if hasattr(provider, 'chat'):
+            # Use chat functionality if available
+            response = await provider.chat(
+                message=current_prompt,
+                system_prompt=system_prompt if step == 0 else None
+            )
+        else:
+            # Fall back to generate if chat is not available
+            response = await provider.generate(
+                system_prompt + "\n\nCurrent task: " + current_prompt + 
+                "\n\nConversation history: " + str(conversation_history)
+            )
         
         # Check if the response contains a tool call
         if "USE_TOOL:" in response:

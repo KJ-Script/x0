@@ -8,6 +8,7 @@ from . import BaseProvider
 from google import genai
 from google.genai import types
 import os
+from typing import List, Dict, Any, Optional, Union
 
 
 class GemniProvider(BaseProvider):
@@ -21,6 +22,7 @@ class GemniProvider(BaseProvider):
         api_key (str): The API key for authenticating with Google's Gemini API
         model (str): The name of the Gemini model to use
         client (genai.Client): The Google Generative AI client instance
+        chat_history (List[Dict[str, str]]): History of chat messages
     """
 
     def __init__(
@@ -54,6 +56,7 @@ class GemniProvider(BaseProvider):
         self.top_p = top_p
         self.top_k = top_k
         self.stream = stream
+        self.chat_history = []
 
         if not self.api_key:
             raise ValueError("API key is required")
@@ -101,6 +104,81 @@ class GemniProvider(BaseProvider):
                 if chunk.text:
                     full_text += chunk.text
             return full_text
+    
+    async def chat(self, message: str, system_prompt: Optional[str] = None, **kwargs) -> str:
+        """
+        Generate a chat response from the Gemini model with conversation history.
+        
+        Args:
+            message (str): The user's message
+            system_prompt (str, optional): A system prompt to set the context
+            **kwargs: Additional parameters for the generation request
+            
+        Returns:
+            str: The generated chat response from the model
+        """
+        # Add the user message to chat history
+        self.chat_history.append({"role": "user", "content": message})
+        
+        # Prepare the chat content
+        chat_content = []
+        
+        # Add system prompt if provided
+        if system_prompt:
+            chat_content.append(system_prompt)
+        
+        # Add chat history
+        for msg in self.chat_history:
+            chat_content.append(msg["content"])
+        
+        # Generate response
+        if self.stream:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=chat_content,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=self.max_output_tokens,
+                    temperature=self.temperature,
+                    topP=self.top_p,
+                    topK=self.top_k,
+                )
+            )
+            response_text = response.text
+        else:
+            response = self.client.models.generate_content_stream(
+                model=self.model,
+                contents=chat_content,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=self.max_output_tokens,
+                    temperature=self.temperature,
+                    topP=self.top_p,
+                    topK=self.top_k,
+                )
+            )
+            response_text = ""
+            for chunk in response:
+                if chunk.text:
+                    response_text += chunk.text
+        
+        # Add the assistant's response to chat history
+        self.chat_history.append({"role": "assistant", "content": response_text})
+        
+        return response_text
+    
+    def clear_chat_history(self):
+        """
+        Clear the chat history.
+        """
+        self.chat_history = []
+    
+    def get_chat_history(self) -> List[Dict[str, str]]:
+        """
+        Get the chat history.
+        
+        Returns:
+            List[Dict[str, str]]: The chat history
+        """
+        return self.chat_history
     
 
     
