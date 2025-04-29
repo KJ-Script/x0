@@ -8,6 +8,7 @@ allowing seamless integration with the Exo library's provider interface.
 from . import BaseProvider
 from exo.providers.base import BaseProvider
 from langchain_ollama import OllamaLLM
+from typing import List, Dict
 
 class OllamaProvider(BaseProvider):
     """
@@ -36,4 +37,17 @@ class OllamaProvider(BaseProvider):
             response = self.client.invoke(prompt)
             return response
         
-        
+
+    async def chat(self, message: str, **kwargs) -> str:
+        """
+        Generate a chat response from the Ollama model.
+        """
+        return await self.generate(message, **kwargs)   
+    
+    def clear_chat_history(self):
+        """Clear the chat history."""
+        self.chat_history = []
+    
+    def get_chat_history(self) -> List[Dict[str, str]]:
+        """Get the chat history."""
+        return self.chat_history.copy()
