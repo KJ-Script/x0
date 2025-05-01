@@ -11,6 +11,7 @@ must include to be compatible with the Exo library.
 
 from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any
+from exo.providers.context.chat_history import ChatHistory
 
 class BaseProvider(ABC):
     """
@@ -25,22 +26,25 @@ class BaseProvider(ABC):
     maintaining consistent behavior.
     """
 
+    # Shared chat history instance for all providers
+    _shared_history = ChatHistory()
+
     def __init__(self, **kwargs):
         """
         Initialize the base provider.
         """
-        self._system_prompt: Optional[str] = None
-        self.chat_history: List[Dict[str, str]] = []
+        # Use the shared history instead of creating a new one
+        self._chat_history = self._shared_history
 
     @property
     def system_prompt(self) -> Optional[str]:
         """Get the current system prompt."""
-        return self._system_prompt
+        return self._chat_history.system_prompt
 
     @system_prompt.setter
     def system_prompt(self, prompt: Optional[str]):
         """Set the system prompt."""
-        self._system_prompt = prompt
+        self._chat_history.system_prompt = prompt
 
     @abstractmethod
     async def generate(self, prompts, **kwargs):
@@ -71,10 +75,9 @@ class BaseProvider(ABC):
         """
         pass
 
-    @abstractmethod
     async def chat(self, message: str, **kwargs) -> str:
         """
-        Generate a chat response with the current system prompt and chat history.
+        Generate a chat response using the shared chat history.
         
         Args:
             message (str): The user's message
@@ -83,15 +86,32 @@ class BaseProvider(ABC):
         Returns:
             str: The generated chat response
         """
+        # Add user message to history
+        self._chat_history.add_message('user', message)
+        
+        # Get response from concrete implementation
+        response = await self._generate_chat_response(message, **kwargs)
+        
+        # Add assistant response to history
+        self._chat_history.add_message('assistant', response)
+        
+        return response
+
+    @abstractmethod
+    async def _generate_chat_response(self, message: str, **kwargs) -> str:
+        """
+        Concrete implementation of chat response generation.
+        To be implemented by each provider.
+        """
         pass
 
     def clear_chat_history(self):
         """Clear the chat history."""
-        self.chat_history = []
+        self._chat_history.clear_history()
     
     def get_chat_history(self) -> List[Dict[str, str]]:
         """Get the chat history."""
-        return self.chat_history.copy()
+        return self._chat_history.get_history()
 
     def get_model_info():
         pass

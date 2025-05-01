@@ -37,17 +37,10 @@ class OllamaProvider(BaseProvider):
             response = self.client.invoke(prompt)
             return response
         
-
-    async def chat(self, message: str, **kwargs) -> str:
+    async def _generate_chat_response(self, message: str, **kwargs) -> str:
         """
         Generate a chat response from the Ollama model.
         """
-        return await self.generate(message, **kwargs)   
+        return await self.generate(message, **kwargs)
     
-    def clear_chat_history(self):
-        """Clear the chat history."""
-        self.chat_history = []
     
-    def get_chat_history(self) -> List[Dict[str, str]]:
-        """Get the chat history."""
-        return self.chat_history.copy()
