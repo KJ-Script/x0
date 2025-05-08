@@ -12,6 +12,7 @@ must include to be compatible with the Exo library.
 from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any
 from exo.providers.context.chat_history import ChatHistory
+from .vector_db import VectorDBAdapter, InMemoryVectorDB
 
 class BaseProvider(ABC):
     """
@@ -35,16 +36,28 @@ class BaseProvider(ABC):
         """
         # Use the shared history instead of creating a new one
         self._chat_history = self._shared_history
+        self._system_prompt: Optional[str] = None
+        self._vector_db: VectorDBAdapter = InMemoryVectorDB()
 
     @property
     def system_prompt(self) -> Optional[str]:
         """Get the current system prompt."""
-        return self._chat_history.system_prompt
+        return self._system_prompt
 
     @system_prompt.setter
     def system_prompt(self, prompt: Optional[str]):
         """Set the system prompt."""
-        self._chat_history.system_prompt = prompt
+        self._system_prompt = prompt
+
+    @property
+    def vector_db(self) -> VectorDBAdapter:
+        """Get the vector database adapter."""
+        return self._vector_db
+
+    @vector_db.setter
+    def vector_db(self, adapter: VectorDBAdapter):
+        """Set the vector database adapter."""
+        self._vector_db = adapter
 
     @abstractmethod
     async def generate(self, prompts, **kwargs):
