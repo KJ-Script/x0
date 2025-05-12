@@ -5,8 +5,7 @@ This module provides a provider implementation for Google's Gemini AI models,
 allowing seamless integration with the Exo library's provider interface.
 """
 from . import BaseProvider
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 import os
 from typing import List, Dict, Any, Optional, Union
 
@@ -50,7 +49,7 @@ class GemniProvider(BaseProvider):
         super().__init__(**kwargs)
 
         self.api_key = api_key or os.getenv("GEMNI_API_KEY")
-        self.model = model
+        self.model_name = model
         self.max_output_tokens = max_output_tokens
         self.temperature = temperature
         self.top_p = top_p
@@ -61,7 +60,9 @@ class GemniProvider(BaseProvider):
         if not self.api_key:
             raise ValueError("API key is required")
 
-        self.client = genai.Client(api_key=self.api_key)
+        # Configure the API
+        genai.configure(api_key=self.api_key)
+        self.model = genai.GenerativeModel(model_name=self.model_name)
 
     async def generate(self, prompt, **kwargs):
         """
@@ -74,36 +75,16 @@ class GemniProvider(BaseProvider):
         Returns:
             str: The generated text response from the model
         """
-        if self.stream:
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=[prompt],
-                config=types.GenerateContentConfig(
-                    max_output_tokens=self.max_output_tokens,
-                    temperature=self.temperature,
-                    topP=self.top_p,
-                    topK=self.top_k,
-                )
+        response = self.model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                max_output_tokens=self.max_output_tokens,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                top_k=self.top_k,
             )
-            # Extract text from non-streaming response
-            return response.text
-        else:
-            response = self.client.models.generate_content_stream(
-                            model=self.model,
-                            contents=[prompt],
-                            config=types.GenerateContentConfig(
-                                max_output_tokens=self.max_output_tokens,
-                                temperature=self.temperature,
-                                topP=self.top_p,
-                                topK=self.top_k,
-                            )
-                        )
-            # Extract text from streaming response
-            full_text = ""
-            for chunk in response:
-                if chunk.text:
-                    full_text += chunk.text
-            return full_text
+        )
+        return response.text
     
     async def _generate_chat_response(self, message: str, **kwargs) -> str:
         """
@@ -112,45 +93,19 @@ class GemniProvider(BaseProvider):
         # Get the full conversation history
         history = self.get_chat_history()
         
-        # Format messages for Gemini
-        messages = []
-        
-        # Add system prompt if present
-        if self.system_prompt:
-            messages.append({
-                "role": "system",
-                "content": self.system_prompt
-            })
+        # Create a new chat session
+        chat = self.model.start_chat(history=[])
         
         # Add conversation history
         for msg in history:
-            messages.append({
-                "role": msg["role"],
-                "content": msg["content"]
-            })
-
-        # Create the chat using Gemini's format
-        chat = self.client.start_chat(
-            model=self.model,
-            config=types.GenerateContentConfig(
-                max_output_tokens=self.max_output_tokens,
-                temperature=self.temperature,
-                top_p=self.top_p,
-                top_k=self.top_k,
-            )
-        )
-
-        # Send all previous messages to establish context
-        for msg in messages:
             if msg["role"] == "user":
                 chat.send_message(msg["content"])
             elif msg["role"] == "assistant":
-                # Some implementations might need to handle assistant messages differently
+                # For assistant messages, we'll just continue as they're part of the history
                 continue
 
         # Send the new message and get response
         response = chat.send_message(message)
-        
         return response.text
     
 

@@ -56,3 +56,4 @@ yarl==1.19.0
 chromadb>=0.4.0
 numpy>=1.24.0
 google-generativeai>=0.3.0  # For Gemini embeddings
+playwright>=1.41.0
