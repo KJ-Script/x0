@@ -12,8 +12,13 @@ from exo.tools.tools.web_automation import navigate_tool, extract_tool
 
 async def main():
     api_key = os.getenv("GEMINI_API_KEY")    
-    provider = GemniProvider(api_key=api_key, model="gemini-2.0-flash")
-    agent = Agent(provider, tools=[navigate_tool, extract_tool], name="WebAgent")
+    provider = GemniProvider(
+        api_key=api_key, 
+        model="gemini-2.0-flash"
+        )
+    agent = Agent(provider, 
+                  tools=[navigate_tool, extract_tool], 
+                  name="WebAgent")
 
     response = await agent.act("What is the weather in Paris?")
     print("Agent response:", response)

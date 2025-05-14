@@ -25,7 +25,7 @@ Exo provides a flexible agent system that can use various AI models and tools to
 ```python
 from exo.agents.base import Agent
 from exo.providers.gemni import GemniProvider
-
+´
 # Initialize provider and agent
 provider = GemniProvider(api_key="your-api-key", model="gemini-pro")
 agent = Agent(provider, name="MyAgent")
